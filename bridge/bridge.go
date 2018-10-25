@@ -2,6 +2,7 @@ package bridge
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"net"
 	"net/url"
@@ -17,6 +18,10 @@ import (
 
 var serviceIDPattern = regexp.MustCompile(`^(.+?):([a-zA-Z0-9][a-zA-Z0-9_.-]+):[0-9]+(?::udp)?$`)
 var ec2internalpattern = regexp.MustCompile(`ip-\S+\.ec2\.internal`)
+var consulPattern = regexp.MustCompile(`((^.+/)|^)consul(:.+)?$`)
+var proxyToPortPattern = regexp.MustCompile(`-service-addr\s*=.+:(\d+)`)
+var listenPortPattern = regexp.MustCompile(`-listen\s*=.*:(\d+)`)
+var destinationServicePattern = regexp.MustCompile(`-service\s*=(.+)`)
 
 type Bridge struct {
 	sync.Mutex
@@ -237,6 +242,9 @@ func (b *Bridge) add(containerId string, quiet bool) {
 			}
 			continue
 		}
+		if b.config.Awsvpc && b.config.HostIp != "" && b.config.HostIp != service.IP {
+			log.Println("ignored:", container.ID[:12], "service on port", port.ExposedPort, fmt.Sprintf("container awsvpc ip %s does not match registrator ip %s", service.IP, b.config.HostIp))
+		}
 		err := b.registry.Register(service)
 		if err != nil {
 			log.Println("register failed:", service, err)
@@ -316,6 +324,13 @@ func (b *Bridge) newService(port ServicePort, isgroup bool) *Service {
 	}
 	service.Port = p
 
+	// set consul connect proxy port if defined in metadata
+	proxyport := mapDefault(metadata, "proxyport", "")
+	if proxyport != "" {
+		pp, _ := strconv.Atoi(proxyport)
+		service.ProxyPort = pp
+	}
+
 	if b.config.UseIpFromLabel != "" {
 		containerIp := container.Config.Labels[b.config.UseIpFromLabel]
 		if containerIp != "" {
@@ -366,6 +381,7 @@ func (b *Bridge) newService(port ServicePort, isgroup bool) *Service {
 	delete(metadata, "id")
 	delete(metadata, "tags")
 	delete(metadata, "name")
+	delete(metadata, "proxyport")
 	service.Attrs = metadata
 	service.TTL = b.config.RefreshTtl
 
@@ -436,4 +452,24 @@ func init() {
 	// It's ok for Hostname to ultimately be an empty string
 	// An empty string will fall back to trying to make a best guess
 	Hostname, _ = os.Hostname()
+}
+
+// Contains tells whether a contains x.
+func contains(a []string, x string) bool {
+	for _, n := range a {
+		if x == n {
+			return true
+		}
+	}
+	return false
+}
+
+func isConnectProxy(container *dockerapi.Container) bool {
+	cmd := container.Config.Cmd
+	if contains(cmd, "connect") == true && contains(cmd, "proxy") == true {
+		//if contains(cmd, "connect") == true && contains(cmd, "proxy") == true && consulPattern.MatchString(container.Image) == true {
+		return true
+	} else {
+		return false
+	}
 }

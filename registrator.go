@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"net"
 	"os"
 	"runtime"
 	"strings"
@@ -13,6 +14,7 @@ import (
 	dockerapi "github.com/fsouza/go-dockerclient"
 	"github.com/gliderlabs/pkg/usage"
 	"github.com/gliderlabs/registrator/bridge"
+	"github.com/hashicorp/go-sockaddr/template"
 )
 
 var Version string
@@ -74,7 +76,19 @@ func main() {
 	}
 
 	if *hostIp != "" {
-		log.Println("Forcing host IP to", *hostIp)
+		ipAddrs := expandAddrs("-ip", hostIp)
+		if len(ipAddrs) == 0 {
+			assert(errors.New("-ip cannot be empty"))
+		}
+		if len(ipAddrs) > 1 {
+			assert(errors.New("-ip cannot contain multiple addresses"))
+		}
+		if !isIPAddr(ipAddrs[0]) {
+			assert(errors.New("-ip must be an ip address"))
+		}
+		x := ipAddrs[0].(*net.IPAddr).String()
+		log.Println("Forcing host IP to", x)
+		hostIp = &x
 	}
 
 	if (*refreshTtl == 0 && *refreshInterval > 0) || (*refreshTtl > 0 && *refreshInterval == 0) {
@@ -188,4 +202,35 @@ func main() {
 
 	close(quit)
 	log.Fatal("Docker event loop closed") // todo: reconnect?
+}
+
+func expandAddrs(name string, s *string) []net.Addr {
+	x, err := template.Parse(*s)
+	if err != nil {
+		assert(errors.New(fmt.Sprintf("%s error parsing %q: %s", name, *s, err)))
+	}
+	var addrs []net.Addr
+	for _, a := range strings.Fields(x) {
+		switch {
+		case strings.HasPrefix(a, "unix://"):
+			assert(errors.New(fmt.Sprintf("%s %s not supported", name, a)))
+		default:
+			// net.ParseIP does not like '[::]'
+			ip := net.ParseIP(a)
+			if a == "[::]" {
+				ip = net.ParseIP("::")
+			}
+			if ip == nil {
+				assert(errors.New(fmt.Sprintf("%s invalid ip address: %s", name, a)))
+			}
+			addrs = append(addrs, &net.IPAddr{IP: ip})
+		}
+	}
+
+	return addrs
+}
+
+func isIPAddr(a net.Addr) bool {
+	_, ok := a.(*net.IPAddr)
+	return ok
 }

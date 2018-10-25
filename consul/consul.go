@@ -78,6 +78,7 @@ func (r *ConsulAdapter) Ping() error {
 }
 
 func (r *ConsulAdapter) Register(service *bridge.Service) error {
+
 	registration := new(consulapi.AgentServiceRegistration)
 	registration.ID = service.ID
 	registration.Name = service.Name
@@ -85,6 +86,12 @@ func (r *ConsulAdapter) Register(service *bridge.Service) error {
 	registration.Tags = service.Tags
 	registration.Address = service.IP
 	registration.Check = r.buildCheck(service)
+	if service.ProxyPort > 0 {
+		log.Println("Setting up sidecar proxy for service:", service.ID)
+		registration.Connect = new(consulapi.AgentServiceConnect)
+		registration.Connect.SidecarService = new(consulapi.AgentServiceRegistration)
+		registration.Connect.SidecarService.Port = service.ProxyPort
+	}
 	registration.Meta = service.Attrs
 	return r.client.Agent().ServiceRegister(registration)
 }

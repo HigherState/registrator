@@ -134,21 +134,6 @@
   revision = "36f28d47ec7aae4d25d3d2741ac5af91f7f18680"
 
 [[projects]]
-  branch = "master"
-  digest = "1:0d6861f6e5deb4b7c17a05a03522e76c7db45f14ac15eb4d4670738cea067fc0"
-  name = "github.com/gliderlabs/registrator"
-  packages = [
-    "bridge",
-    "consul",
-    "consulkv",
-    "etcd",
-    "skydns2",
-    "zookeeper",
-  ]
-  pruneopts = "UT"
-  revision = "cd981b2c59298593b94616a9fca2bb5566274ede"
-
-[[projects]]
   digest = "1:bbadccf3d3317ea03c0dac0b45b673b4b397c8f91a1d2eff550a3c51c4ad770e"
   name = "github.com/gogo/protobuf"
   packages = ["proto"]
@@ -157,12 +142,12 @@
   version = "v1.1.1"
 
 [[projects]]
-  digest = "1:d56baf8f9ef8bcf6f7c00ed2411220f5e35cc4912076de12c5a41be722eee9ec"
+  digest = "1:662f988f80b8e4208a0004d1e9d67543602fdd00b7106a857b8339e3d276ae1e"
   name = "github.com/hashicorp/consul"
   packages = ["api"]
   pruneopts = "UT"
-  revision = "48d287ef690ada66634885640f3444dbf7b71d18"
-  version = "v1.2.3"
+  revision = "e8757838a49feeb682c7e6ad6b78694a78b2096b"
+  version = "v1.3.0"
 
 [[projects]]
   digest = "1:f47d6109c2034cb16bd62b220e18afd5aa9d5a1630fe5d937ad96a4fb7cbb277"
@@ -341,12 +326,6 @@
     "github.com/coreos/go-etcd/etcd",
     "github.com/fsouza/go-dockerclient",
     "github.com/gliderlabs/pkg/usage",
-    "github.com/gliderlabs/registrator/bridge",
-    "github.com/gliderlabs/registrator/consul",
-    "github.com/gliderlabs/registrator/consulkv",
-    "github.com/gliderlabs/registrator/etcd",
-    "github.com/gliderlabs/registrator/skydns2",
-    "github.com/gliderlabs/registrator/zookeeper",
     "github.com/hashicorp/consul/api",
     "github.com/hashicorp/go-cleanhttp",
     "github.com/samuel/go-zookeeper/zk",
