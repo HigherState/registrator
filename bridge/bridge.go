@@ -312,7 +312,25 @@ func (b *Bridge) newService(port ServicePort, isgroup bool) *Service {
 	if b.config.Internal == true {
 		service.IP = port.ExposedIP
 		p, _ = strconv.Atoi(port.ExposedPort)
-	} else if b.config.Awsvpc == true {
+	} else if b.config.Awsvpc && b.config.UseIpFromLabel != "" {
+		// if we are in awsvpc mode, use the ip from label if it is set, otherwise resolve the hostname and use that
+		containerIp := container.Config.Labels[b.config.UseIpFromLabel]
+		if containerIp != "" {
+			slashIndex := strings.LastIndex(containerIp, "/")
+			if slashIndex > -1 {
+				service.RegisterIP = containerIp[:slashIndex]
+			} else {
+				service.RegisterIP = containerIp
+			}
+			log.Println("registering container IP " + service.RegisterIP + " from label '" +
+				b.config.UseIpFromLabel + "'")
+		}
+		ip, err := net.ResolveIPAddr("ip", hostname)
+		if err == nil {
+			service.IP = ip.String()
+			p, _ = strconv.Atoi(port.HostPort)
+		}
+	} else if b.config.Awsvpc {
 		ip, err := net.ResolveIPAddr("ip", hostname)
 		if err == nil {
 			service.IP = ip.String()
@@ -331,7 +349,7 @@ func (b *Bridge) newService(port ServicePort, isgroup bool) *Service {
 		service.ProxyPort = pp
 	}
 
-	if b.config.UseIpFromLabel != "" {
+	if b.config.Awsvpc == false && b.config.UseIpFromLabel != "" {
 		containerIp := container.Config.Labels[b.config.UseIpFromLabel]
 		if containerIp != "" {
 			slashIndex := strings.LastIndex(containerIp, "/")
@@ -364,14 +382,20 @@ func (b *Bridge) newService(port ServicePort, isgroup bool) *Service {
 		}
 	}
 
+	var combinedTags []string
 	if port.PortType == "udp" {
-		service.Tags = combineTags(
+		combinedTags = combineTags(
 			mapDefault(metadata, "tags", ""), b.config.ForceTags, "udp")
 		service.ID = service.ID + ":udp"
 	} else {
-		service.Tags = combineTags(
+		combinedTags = combineTags(
 			mapDefault(metadata, "tags", ""), b.config.ForceTags)
 	}
+
+	if b.config.Awsvpc {
+		combinedTags = append(combinedTags, b.config.EcsTaskArnTag+"="+container.Config.Labels["com.amazonaws.ecs.task-arn"])
+	}
+	service.Tags = combinedTags
 
 	id := mapDefault(metadata, "id", "")
 	if id != "" {

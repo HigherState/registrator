@@ -84,7 +84,11 @@ func (r *ConsulAdapter) Register(service *bridge.Service) error {
 	registration.Name = service.Name
 	registration.Port = service.Port
 	registration.Tags = service.Tags
-	registration.Address = service.IP
+	if service.RegisterIP != "" {
+		registration.Address = service.RegisterIP
+	} else {
+		registration.Address = service.IP
+	}
 	registration.Check = r.buildCheck(service)
 	if service.ProxyPort > 0 {
 		log.Println("Setting up sidecar proxy for service:", service.ID)

@@ -25,6 +25,7 @@ type Config struct {
 	Explicit        bool
 	UseIpFromLabel  string
 	Awsvpc          bool
+	EcsTaskArnTag   string
 	ForceTags       string
 	RefreshTtl      int
 	RefreshInterval int
@@ -33,15 +34,16 @@ type Config struct {
 }
 
 type Service struct {
-	ID        string
-	Name      string
-	Port      int
-	IP        string
-	Kind      string
-	ProxyPort int
-	Tags      []string
-	Attrs     map[string]string
-	TTL       int
+	ID         string
+	Name       string
+	Port       int
+	IP         string
+	RegisterIP string
+	Kind       string
+	ProxyPort  int
+	Tags       []string
+	Attrs      map[string]string
+	TTL        int
 
 	Origin ServicePort
 }

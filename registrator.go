@@ -26,6 +26,7 @@ var internal = flag.Bool("internal", false, "Use internal ports instead of publi
 var explicit = flag.Bool("explicit", false, "Only register containers which have SERVICE_NAME label set")
 var useIpFromLabel = flag.String("useIpFromLabel", "", "Use IP which is stored in a label assigned to the container")
 var awsvpc = flag.Bool("awsvpc", false, "Support ECS awsvpc networking mode")
+var ecsTaskArnTag = flag.String("ecs-task-arn-tag", "traefik.tags", "Tag name for ECS task ARN label (only used in awsvpc mode)")
 var refreshInterval = flag.Int("ttl-refresh", 0, "Frequency with which service TTLs are refreshed")
 var refreshTtl = flag.Int("ttl", 0, "TTL for services (default is no expiry)")
 var forceTags = flag.String("tags", "", "Append tags for all registered services")
@@ -123,6 +124,7 @@ func main() {
 		Explicit:        *explicit,
 		UseIpFromLabel:  *useIpFromLabel,
 		Awsvpc:          *awsvpc,
+		EcsTaskArnTag:   *ecsTaskArnTag,
 		ForceTags:       *forceTags,
 		RefreshTtl:      *refreshTtl,
 		RefreshInterval: *refreshInterval,
